@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cronômetro</title>
+    <style>
+        body {
+            background-color: #afafaf;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .timer {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #000000;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .buttons button {
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .buttons button:hover {
+            background-color: #b3e5f1;
+        }
+
+        .lap {
+            margin-top: 10px;
+        }
+
+        table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 80%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 2px solid #ffffff;
+            padding: 8px;
+            color: #ffffff;
+        }
+
+        th {
+            background-color: #031949;
+        }
+
+        .export-button {
+            margin-top: 20px;
+        }
+
+        .export-button button {
+            background-color: #031949;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .export-button button:hover {
+            background-color: #c0c0c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timer" id="timer">00:00:00</div>
+        <div class="buttons">
+            <button onclick="start()">Start</button>
+            <button onclick="end()">End</button>
+            <button onclick="reset()">Reset</button>
+        </div>
+        <div class="lap">
+            <button onclick="lap()" id="lapButton">Lap</button>
+        </div>
+        <table id="lapsTable">
+            <tr>
+                <th id="lapNameHeader" style="display: none;">Lap Name</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Duration</th>
+            </tr>
+        </table>
+        <div class="export-button">
+            <button onclick="exportToExcel()">Export to Excel</button>
+        </div>
+    </div>
+
+    <script>
+        let startTime;
+        let intervalId;
+        let laps = [];
+        let lapIndex = 0;
+        const lapNames = [
+            'Início',
+            'Lista de presença e papéis',
+            'Updates NBS',
+            'Revisão das Ações',
+            'Análise dos Indicadores',
+            'Escalações',
+            'Comentários dos membros e os próximos papéis',
+            'Reconhecimentos'
+        ];
+
+        function start() {
+            startTime = Date.now();
+            intervalId = setInterval(updateTimer, 10);
+            document.getElementById('lapButton').disabled = false;
+            lap();
+        }
+
+        function end() {
+            clearInterval(intervalId);
+            document.getElementById('lapButton').disabled = true;
+        }
+
+        function reset() {
+            clearInterval(intervalId);
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = '00:00:00';
+            laps = [];
+            lapIndex = 0;
+            const lapsTable = document.getElementById('lapsTable');
+            lapsTable.innerHTML = '<tr><th id="lapNameHeader" style="display: none;">Lap Name</th><th>Start</th><th>End</th><th>Duration</th></tr>';
+            document.getElementById('lapButton').disabled = false;
+        }
+
+        function lap() {
+            const currentTime = Date.now();
+            const elapsedTime = currentTime - startTime;
+            const lapTime = formatTime(elapsedTime);
+            const lapName = lapNames[lapIndex];
+            const lapStart = new Date(startTime).toLocaleTimeString();
+            const lapEnd = new Date(currentTime).toLocaleTimeString();
+            const lapDuration = lapTime;
+
+            laps.push({ name: lapName, start: lapStart, end: lapEnd, duration: lapDuration });
+
+            const lapsTable = document.getElementById('lapsTable');
+            const newRow = lapsTable.insertRow(-1);
+            const lapNameCell = newRow.insertCell(0);
+            const startCell = newRow.insertCell(1);
+            const endCell = newRow.insertCell(2);
+            const durationCell = newRow.insertCell(3);
+
+            lapNameCell.textContent = lapName;
+            startCell.textContent = lapStart;
+            endCell.textContent = lapEnd;
+            durationCell.textContent = lapDuration;
+
+            lapIndex++;
+            if (lapIndex >= lapNames.length) {
+                document.getElementById('lapButton').disabled = true;
+            }
+
+            if (lapIndex === 1) {
+                document.getElementById('lapNameHeader').style.display = 'table-cell';
+            }
+
+            startTime = currentTime;
+        }
+
+        function updateTimer() {
+            const currentTime = Date.now();
+            const elapsedTime = currentTime - startTime;
+            const formattedTime = formatTime(elapsedTime);
+
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = formattedTime;
+        }
+
+        function formatTime(time) {
+            const milliseconds = Math.floor(time % 1000 / 10);
+            const seconds = Math.floor(time / 1000 % 60);
+            const minutes = Math.floor(time / 1000 / 60 % 60);
+            const hours = Math.floor(time / 1000 / 60 / 60);
+
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${pad(milliseconds)}`;
+        }
+
+        function pad(number) {
+            return number.toString().padStart(2, '0');
+        }
+
+        function exportToExcel() {
+            const lapsData = laps.map(lap => ({
+                'Lap Name': lap.name,
+                'Start': lap.start,
+                'End': lap.end,
+                'Duration': lap.duration
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(lapsData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Laps');
+            const currentDate = new Date();
+            const dateString = currentDate.toLocaleDateString().replace(/\//g, '-');
+            const fileName = `WOR_Timeline_${dateString}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+        }
+    </script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+</body>
+</html>
