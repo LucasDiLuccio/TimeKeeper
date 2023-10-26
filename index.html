@@ -20,11 +20,11 @@
             color: #000000;
         }
 
-        .buttons {
+        .buttons, .lap {
             margin-top: 20px;
         }
 
-        .buttons button {
+        .buttons button, .lap button {
             background-color: #ffffff;
             color: #000000;
             border: none;
@@ -36,12 +36,8 @@
             transition: background-color 0.3s ease;
         }
 
-        .buttons button:hover {
+        .buttons button:hover, .lap button:hover {
             background-color: #b3e5f1;
-        }
-
-        .lap {
-            margin-top: 10px;
         }
 
         table {
@@ -89,8 +85,8 @@
             <button onclick="end()">End</button>
             <button onclick="reset()">Reset</button>
         </div>
-        <div class="lap">
-            <button onclick="lap()" id="lapButton">Lap</button>
+        <div class="lap buttons">
+            <button onclick="lap()" id="lapButton">Flap</button>
         </div>
         <table id="lapsTable">
             <tr>
@@ -110,6 +106,7 @@
         let intervalId;
         let laps = [];
         let lapIndex = 0;
+        let lapStartTime; // Variável para armazenar o tempo de início do "Flap"
         const lapNames = [
             'Início',
             'Lista de presença e papéis',
@@ -142,6 +139,13 @@
             const lapsTable = document.getElementById('lapsTable');
             lapsTable.innerHTML = '<tr><th id="lapNameHeader" style="display: none;">Lap Name</th><th>Start</th><th>End</th><th>Duration</th></tr>';
             document.getElementById('lapButton').disabled = false;
+
+            const confirmReset = confirm('Você deseja realmente resetar o tempo?');
+            if (confirmReset) {
+                // Código para redefinir o tempo
+            } else {
+                // Código para fechar a caixa de pergunta
+            }
         }
 
         function lap() {
@@ -149,11 +153,10 @@
             const elapsedTime = currentTime - startTime;
             const lapTime = formatTime(elapsedTime);
             const lapName = lapNames[lapIndex];
-            const lapStart = new Date(startTime).toLocaleTimeString();
-            const lapEnd = new Date(currentTime).toLocaleTimeString();
+            const lapStart = lapIndex > 0 ? document.getElementById('lapsTable').rows[lapIndex].cells[2].textContent : new Date(startTime).toLocaleTimeString();
             const lapDuration = lapTime;
 
-            laps.push({ name: lapName, start: lapStart, end: lapEnd, duration: lapDuration });
+            laps.push({ name: lapName, start: lapStart, duration: lapDuration });
 
             const lapsTable = document.getElementById('lapsTable');
             const newRow = lapsTable.insertRow(-1);
@@ -164,7 +167,6 @@
 
             lapNameCell.textContent = lapName;
             startCell.textContent = lapStart;
-            endCell.textContent = lapEnd;
             durationCell.textContent = lapDuration;
 
             lapIndex++;
@@ -177,6 +179,7 @@
             }
 
             startTime = currentTime;
+            lapStartTime = currentTime; // Armazena o tempo de início do "Flap"
         }
 
         function updateTimer() {
@@ -186,6 +189,18 @@
 
             const timerElement = document.getElementById('timer');
             timerElement.textContent = formattedTime;
+
+            // Atualiza o campo "Duration" a cada intervalo de tempo
+            const lapDuration = formatTime(currentTime - lapStartTime);
+            const durationCell = document.getElementById('lapsTable').rows[lapIndex].cells[3];
+            durationCell.textContent = lapDuration;
+
+            // Atualiza o campo "End" somente quando a coluna "Duration" for finalizada
+            if (lapIndex > 0) {
+                const lapEnd = new Date(new Date(startTime).getTime() + elapsedTime).toLocaleTimeString();
+                const endCell = document.getElementById('lapsTable').rows[lapIndex].cells[2];
+                endCell.textContent = lapEnd;
+            }
         }
 
         function formatTime(time) {
